@@ -1,3 +1,40 @@
+import requests
+import torch
+import os
+import time
+from git import Repo
+import streamlit as st
+
+@st.experimental_singleton
+def loadModel():
+    start_dl = time.time()
+    
+    # Clone the YOLOv7 repository
+    Repo.clone_from("https://github.com/WongKinYiu/yolov7", "yolov7")
+    os.chdir('yolov7')
+    
+    # Download the YOLO model weights
+    model_url = "https://example.com/path/to/your/custom_yolo_model_weights.pt"
+    response = requests.get(model_url)
+    
+    # Check if the response is valid
+    if response.headers['Content-Type'] == 'text/html':
+        raise ValueError("The URL returned an HTML page. Check the URL or the file availability.")
+    
+    with open("best.pt", 'wb') as file:
+        file.write(response.content)
+    
+    finished_dl = time.time()
+    print(f"Model Downloaded, ETA: {finished_dl - start_dl} seconds")
+    
+    # Load and return the YOLO model
+    model = torch.load("best.pt", map_location=torch.device('cpu'))
+    model.eval()
+    return model
+
+
+
+
 import streamlit as st
 import torch
 import os
