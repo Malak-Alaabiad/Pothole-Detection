@@ -1,49 +1,67 @@
-import streamlit as st
+from pathlib import Path
 from PIL import Image
-import torch
-from torchvision import transforms
-import numpy as np
-import cv2
+import streamlit as st
 
-# Load YOLOv8 model
-@st.cache_resource
-def load_model(model_path):
-    model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path)
-    model.eval()
-    return model
+import config
+from utils import load_model, infer_uploaded_image, infer_uploaded_video, infer_uploaded_webcam
 
-model = load_model('https://github.com/ultralytics/ultralytics')
+# setting page layout
+st.set_page_config(
+    page_title="Interactive Interface for YOLOv8",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
+    )
 
-def preprocess_image(image):
-    image = np.array(image)
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    return image
+# main page heading
+st.title("Interactive Interface for YOLOv8")
 
-def detect_potholes(image):
-    results = model(image)
-    return results
+# sidebar
+st.sidebar.header("DL Model Config")
 
-def main():
-    st.title("Pothole Detection App")
-    st.write("Upload an image to detect potholes.")
+# model options
+task_type = st.sidebar.selectbox(
+    "Select Task",
+    ["Detection"]
+)
 
-    uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
-    
-    if uploaded_image is not None:
-        image = Image.open(uploaded_image)
-        st.image(image, caption='Uploaded Image', use_column_width=True)
+model_type = None
+if task_type == "Detection":
+    model_type = st.sidebar.selectbox(
+        "Select Model",
+        config.DETECTION_MODEL_LIST
+    )
+else:
+    st.error("Currently only 'Detection' function is implemented")
 
-        st.write("Detecting potholes...")
-        
-        processed_image = preprocess_image(image)
-        results = detect_potholes(processed_image)
+confidence = float(st.sidebar.slider(
+    "Select Model Confidence", 30, 100, 50)) / 100
 
-        st.write("Detection Results:")
-        st.write(results.pandas().xyxy[0].to_dict())
+model_path = ""
+if model_type:
+    model_path = Path(config.DETECTION_MODEL_DIR, str(model_type))
+else:
+    st.error("Please Select Model in Sidebar")
 
-        # Display results on the image
-        img_with_boxes = results.render()[0]
-        st.image(img_with_boxes, caption='Detected Potholes', use_column_width=True)
+# load pretrained DL model
+try:
+    model = load_model(model_path)
+except Exception as e:
+    st.error(f"Unable to load model. Please check the specified path: {model_path}")
 
-if __name__ == "__main__":
-    main()
+# image/video options
+st.sidebar.header("Image/Video Config")
+source_selectbox = st.sidebar.selectbox(
+    "Select Source",
+    config.SOURCES_LIST
+)
+
+source_img = None
+if source_selectbox == config.SOURCES_LIST[0]: # Image
+    infer_uploaded_image(confidence, model)
+elif source_selectbox == config.SOURCES_LIST[1]: # Video
+    infer_uploaded_video(confidence, model)
+elif source_selectbox == config.SOURCES_LIST[2]: # Webcam
+    infer_uploaded_webcam(confidence, model)
+else:
+    st.error("Currently only 'Image' and 'Video' source are implemented")
