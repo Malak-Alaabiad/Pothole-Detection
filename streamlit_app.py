@@ -14,7 +14,7 @@ def loadModel():
     Repo.clone_from("https://github.com/WongKinYiu/yolov7", "yolov7")
     os.chdir('yolov7')
     # Download the YOLO model weights
-    model_url = "https://path.to/your/custom_yolo_model_weights.pt"
+    model_url = "https://example.com/path/to/your/custom_yolo_model_weights.pt"
     yolo_model = requests.get(model_url)
     with open("best.pt", 'wb') as file:
         file.write(yolo_model.content)
