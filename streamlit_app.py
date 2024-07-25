@@ -5,6 +5,7 @@ import requests
 import time
 from PIL import Image
 import numpy as np
+from git import Repo
 
 @st.experimental_singleton
 def loadModel():
